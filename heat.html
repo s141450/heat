@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shell & Tube Heat Exchanger</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #0f1520;
+    --border: #1a2840;
+    --hot: #ff4d2e;
+    --hot2: #ff8060;
+    --cold: #2eb8ff;
+    --cold2: #7dd3fc;
+    --accent: #f0a500;
+    --green: #22c55e;
+    --warn: #f59e0b;
+    --dim: #4a6080;
+    --text: #c8d8e8;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Barlow Condensed', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--mono);
+    min-height: 100vh; padding: 28px 32px;
+    background-image:
+      radial-gradient(ellipse at 15% 10%, rgba(46,184,255,0.03) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 90%, rgba(255,77,46,0.04) 0%, transparent 55%);
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 22px;
+  }
+  header h1 { font-family: var(--head); font-size: 2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #e8f4ff; line-height: 1; }
+  header h1 span { color: var(--accent); }
+  header p { font-size: 0.62rem; color: var(--dim); margin-top: 5px; letter-spacing: 0.1em; }
+  .status { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+  .status span { font-size: 0.62rem; color: var(--green); letter-spacing: 0.12em; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 20px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 14px 12px; text-align: center; position: relative; overflow: hidden; }
+  .kpi::after { content:''; position:absolute; bottom:0;left:0;right:0;height:2px; }
+  .kpi.h::after{background:var(--hot)}.kpi.c::after{background:var(--cold)}
+  .kpi.a::after{background:var(--accent)}.kpi.g::after{background:var(--green)}.kpi.w::after{background:var(--warn)}
+  .kpi-num { font-size: 1.7rem; line-height: 1; }
+  .kpi-unit { font-size: 0.75rem; color: var(--dim); }
+  .kpi-lbl { font-size: 0.57rem; color: var(--dim); margin-top: 5px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* DIAGRAM */
+  .diagram { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 20px 28px; margin-bottom: 20px; }
+  .diagram-title { font-size: 0.6rem; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px; }
+  .legend { display: flex; gap: 28px; margin-bottom: 14px; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 8px; font-size: 0.6rem; color: var(--dim); }
+  .leg-line { width: 26px; height: 3px; border-radius: 1px; }
+
+  /* BOTTOM GRID */
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 18px; position: relative; overflow: hidden; }
+  .card::before { content:''; position:absolute; top:0;left:0;right:0;height:2px; }
+  .card.h::before{background:var(--hot)}.card.c::before{background:var(--cold)}.card.a::before{background:var(--accent)}
+  .card-title { font-size: 0.6rem; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 13px; }
+
+  .tbar { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .tbar-label { width: 64px; font-size: 0.62rem; color: var(--dim); flex-shrink: 0; }
+  .tbar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+  .tbar-fill { height: 100%; border-radius: 2px; }
+  .tbar-val { width: 62px; text-align: right; font-size: 0.75rem; flex-shrink: 0; }
+
+  .crow { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid rgba(26,40,64,0.8); font-size: 0.7rem; }
+  .crow:last-child { border-bottom: none; }
+  .crow-label { color: var(--dim); }
+  .crow-val { font-size: 0.82rem; }
+
+  .divider { height: 1px; background: var(--border); margin: 11px 0; }
+
+  /* SUMMARY */
+  .summary { background: var(--panel); border: 1px solid rgba(34,197,94,0.2); border-radius: 5px; padding: 18px 24px; margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .sum-block { text-align: center; }
+  .sum-num { font-size: 1.55rem; line-height: 1; }
+  .sum-lbl { font-size: 0.55rem; color: var(--dim); margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .sep { width: 1px; height: 38px; background: var(--border); flex-shrink: 0; }
+  .verdict { text-align: center; padding: 13px 22px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2); border-radius: 4px; }
+  .verdict-main { font-family: var(--head); font-size: 1.35rem; font-weight: 900; color: var(--green); letter-spacing: 0.05em; }
+  .verdict-sub { font-size: 0.58rem; color: var(--dim); margin-top: 5px; line-height: 1.7; }
+
+  .note { margin-top: 14px; font-size: 0.57rem; color: var(--dim); border-top: 1px solid var(--border); padding-top: 12px; }
+
+  /* ── FLOW ANIMATIONS ──
+     Oil (shell):   enters TOP-LEFT ↓, travels right →, exits BOTTOM-RIGHT ↓
+                    We animate a horizontal drift LEFT→RIGHT to show travel direction
+     Water pass 1:  enters RIGHT →← (goes leftward through bottom tube)
+     Water pass 2:  U-turns on LEFT, goes →right through top tube, exits RIGHT
+  */
+  @keyframes oil-drift   { from{stroke-dashoffset:36}to{stroke-dashoffset:0}   } /* LEFT → RIGHT */
+  @keyframes water-p1    { from{stroke-dashoffset:0} to{stroke-dashoffset:36}  } /* RIGHT → LEFT */
+  @keyframes water-p2    { from{stroke-dashoffset:36}to{stroke-dashoffset:0}   } /* LEFT → RIGHT */
+
+  .oil-anim { stroke-dasharray:12 8; animation: oil-drift 1.8s linear infinite; }
+  .wp1-anim { stroke-dasharray:12 8; animation: water-p1  1.5s linear infinite; }
+  .wp2-anim { stroke-dasharray:12 8; animation: water-p2  1.5s linear infinite; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+  .kpi  { animation: fadeUp .4s ease both; }
+  .kpi:nth-child(1){animation-delay:.04s}.kpi:nth-child(2){animation-delay:.08s}
+  .kpi:nth-child(3){animation-delay:.12s}.kpi:nth-child(4){animation-delay:.16s}.kpi:nth-child(5){animation-delay:.2s}
+  .card { animation: fadeUp .45s ease both; }
+  .card:nth-child(1){animation-delay:.22s}.card:nth-child(2){animation-delay:.27s}.card:nth-child(3){animation-delay:.32s}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <h1>Shell &amp; Tube <span>Heat Exchanger</span></h1>
+    <p>TEMA · 1 SHELL PASS · 2 TUBE PASSES · COUNTER-FLOW · 30° TRIANGULAR PITCH</p>
+  </div>
+  <div class="status"><div class="dot"></div><span>DESIGN ADEQUATE</span></div>
+</header>
+
+<!-- KPI STRIP -->
+<div class="kpis">
+  <div class="kpi h"><div class="kpi-num" style="color:var(--hot)">52.0<span class="kpi-unit"> kW</span></div><div class="kpi-lbl">Heat Duty (oil)</div></div>
+  <div class="kpi a"><div class="kpi-num" style="color:var(--accent)">50.18<span class="kpi-unit"> °C</span></div><div class="kpi-lbl">Corrected LMTD</div></div>
+  <div class="kpi c"><div class="kpi-num" style="color:var(--cold)">2.95<span class="kpi-unit"> m²</span></div><div class="kpi-lbl">Required Area</div></div>
+  <div class="kpi g"><div class="kpi-num" style="color:var(--green)">14<span class="kpi-unit"> tubes</span></div><div class="kpi-lbl">Selected (7/pass)</div></div>
+  <div class="kpi w"><div class="kpi-num" style="color:var(--warn)">+13.7<span class="kpi-unit"> %</span></div><div class="kpi-lbl">Area Surplus</div></div>
+</div>
+
+<!-- DIAGRAM -->
+<div class="diagram">
+  <div class="diagram-title">Process Flow Diagram — 1 Shell Pass / 2 Tube Passes</div>
+  <div class="legend">
+    <div class="leg"><div class="leg-line" style="background:var(--hot);opacity:.7"></div><span>Hot Oil (Shell) — enters top-left ↓, exits bottom-right ↓</span></div>
+    <div class="leg"><div class="leg-line" style="background:var(--cold)"></div><span>Water Pass 1 (bottom tube) — enters right, flows → left</span></div>
+    <div class="leg"><div class="leg-line" style="background:var(--cold2)"></div><span>Water Pass 2 (top tube) — U-turn left, flows → right, exits right</span></div>
+  </div>
+
+  <!--
+    LAYOUT (matches reference image):
+    ┌──────────────────────────────────────────────────────┐
+    │  Shell fluid in (top-left ↓)                         │
+    │  ┌────────────────────────────────────────────────┐  │
+    │  │  [pass 2 top tube]  ←←←←←←←←←←←←←←←  ←←   │  │← Water OUT (right, top)
+    │  │                    ↖ U-bend (left side)         │  │
+    │  │  [pass 1 bot tube]  →→→→→→→→→→→→→→→  →→   │  │← Water IN  (right, bottom)
+    │  └────────────────────────────────────────────────┘  │
+    │  Shell fluid out (bottom-right ↓)                    │
+    └──────────────────────────────────────────────────────┘
+  -->
+
+  <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+    <defs>
+      <!-- Arrow markers -->
+      <marker id="aR" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0,0 7,2.5 0,5" fill="rgba(255,77,46,0.7)"/>
+      </marker>
+      <marker id="aL-cold" markerWidth="7" markerHeight="5" refX="0" refY="2.5" orient="auto">
+        <polygon points="7,0 0,2.5 7,5" fill="rgba(46,184,255,0.8)"/>
+      </marker>
+      <marker id="aR-cold2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0,0 7,2.5 0,5" fill="rgba(125,211,252,0.8)"/>
+      </marker>
+      <marker id="aD-oil" markerWidth="5" markerHeight="7" refX="2.5" refY="7" orient="auto">
+        <polygon points="0,0 5,0 2.5,7" fill="rgba(255,77,46,0.7)"/>
+      </marker>
+    </defs>
+
+    <!-- ═══════════ SHELL OUTER BODY ═══════════ -->
+    <rect x="60" y="40" width="680" height="150" rx="0" fill="rgba(10,16,26,0)" stroke="none"/>
+
+    <!-- Shell wall (thick border) -->
+    <!-- Top wall -->
+    <rect x="60" y="40" width="680" height="12" fill="#141f30" stroke="#1a2840" stroke-width="1"/>
+    <!-- Bottom wall -->
+    <rect x="60" y="178" width="680" height="12" fill="#141f30" stroke="#1a2840" stroke-width="1"/>
+    <!-- Right wall (closed end - tube bundle side) -->
+    <rect x="728" y="40" width="12" height="150" fill="#141f30" stroke="#1a2840" stroke-width="1"/>
+
+    <!-- Shell interior (the shell-side fluid zone) -->
+    <rect x="60" y="52" width="680" height="126" fill="rgba(255,77,46,0.04)" stroke="none"/>
+
+    <!-- ═══════════ LEFT HEADER BOX (tube-side inlet/outlet + U-bend) ═══════════ -->
+    <!-- Left channel cover -->
+    <rect x="20" y="40" width="42" height="150" rx="3" fill="#0c1828" stroke="#1e3050" stroke-width="1.2"/>
+    <!-- Separator between pass 1 and pass 2 inside left header (creates 2 chambers) -->
+    <!-- No separator here — left header is open for U-bend -->
+
+    <!-- ═══════════ RIGHT HEADER BOX (tube-side nozzles) ═══════════ -->
+    <rect x="738" y="40" width="42" height="150" rx="3" fill="#0c1828" stroke="#1e3050" stroke-width="1.2"/>
+    <!-- Separator in right header — divides pass 1 (bottom) from pass 2 (top) -->
+    <line x1="738" y1="115" x2="780" y2="115" stroke="#1e3050" stroke-width="1.5"/>
+
+    <!-- ═══════════ TUBES ═══════════
+         Pass 1: bottom tube row → water flows RIGHT to LEFT
+         Pass 2: top tube row    → water flows LEFT to RIGHT (after U-bend)
+         In this design (7 tubes per pass) we draw them as 2 representative grouped tubes
+    ═══════════ -->
+
+    <!-- Pass 1 tube walls (bottom group) — y=135..155 -->
+    <rect x="60"  y="138" width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+    <rect x="60"  y="150" width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+    <rect x="60"  y="162" width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+
+    <!-- Pass 2 tube walls (top group) — y=55..80 -->
+    <rect x="60"  y="58"  width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+    <rect x="60"  y="70"  width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+    <rect x="60"  y="82"  width="680" height="8"  rx="2" fill="#091828" stroke="#112030" stroke-width="0.5"/>
+
+    <!-- Pass separator label -->
+    <text x="400" y="122" fill="#1a2e48" font-size="7.5" text-anchor="middle" font-family="Share Tech Mono">· · · · · · · · · · PASS DIVIDER · · · · · · · · · ·</text>
+
+    <!-- ═══════════ WATER PASS 1 FLOW: RIGHT → LEFT (bottom tubes) ═══════════ -->
+    <line x1="62"  y1="142" x2="728" y2="142" stroke="rgba(46,184,255,0.75)" stroke-width="3" class="wp1-anim"/>
+    <line x1="62"  y1="154" x2="728" y2="154" stroke="rgba(46,184,255,0.60)" stroke-width="3" class="wp1-anim"/>
+    <line x1="62"  y1="166" x2="728" y2="166" stroke="rgba(46,184,255,0.45)" stroke-width="3" class="wp1-anim"/>
+    <!-- Mid-flow arrow to indicate direction -->
+    <line x1="420" y1="142" x2="340" y2="142" stroke="rgba(46,184,255,0.9)" stroke-width="2" marker-end="url(#aL-cold)"/>
+
+    <!-- ═══════════ U-BEND on LEFT side ═══════════ -->
+    <!-- Arc connecting bottom tubes (pass 1) to top tubes (pass 2) inside left header -->
+    <path d="M60,154 Q30,154 30,90 Q30,70 60,70"
+          stroke="rgba(46,184,255,0.5)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- Animated fill on U-bend -->
+    <path d="M60,154 Q30,154 30,90 Q30,70 60,70"
+          stroke="rgba(46,184,255,0.35)" stroke-width="7" fill="none" stroke-linecap="round"
+          stroke-dasharray="8 8" style="animation: water-p2 1.5s linear infinite"/>
+    <!-- U-bend label -->
+    <text x="10" y="98"  fill="rgba(46,184,255,0.4)" font-size="7" text-anchor="middle" font-family="Share Tech Mono" transform="rotate(-90,10,98)">U-BEND</text>
+
+    <!-- ═══════════ WATER PASS 2 FLOW: LEFT → RIGHT (top tubes) ═══════════ -->
+    <line x1="62"  y1="62"  x2="728" y2="62"  stroke="rgba(125,211,252,0.75)" stroke-width="3" class="wp2-anim"/>
+    <line x1="62"  y1="74"  x2="728" y2="74"  stroke="rgba(125,211,252,0.60)" stroke-width="3" class="wp2-anim"/>
+    <line x1="62"  y1="86"  x2="728" y2="86"  stroke="rgba(125,211,252,0.45)" stroke-width="3" class="wp2-anim"/>
+    <!-- Mid-flow arrow -->
+    <line x1="340" y1="62" x2="420" y2="62" stroke="rgba(125,211,252,0.9)" stroke-width="2" marker-end="url(#aR-cold2)"/>
+
+    <!-- ═══════════ HOT OIL SHELL-SIDE FLOW ═══════════
+         Enters TOP-LEFT ↓, drifts rightward inside shell, exits BOTTOM-RIGHT ↓
+         Shown as wide semi-transparent fill with horizontal drift animation
+    ═══════════ -->
+    <!-- Oil drift bands (wide, behind tubes) -->
+    <rect x="62" y="54" width="664" height="122" rx="2" fill="none"
+          stroke="rgba(255,77,46,0.12)" stroke-width="40" class="oil-anim"/>
+    <!-- Secondary oil band to fill -->
+    <rect x="62" y="54" width="664" height="122" rx="2" fill="none"
+          stroke="rgba(255,100,40,0.07)" stroke-width="80" class="oil-anim"
+          style="animation-delay:0.9s"/>
+
+    <!-- ═══════════ NOZZLES ═══════════ -->
+
+    <!-- OIL IN: top-left, enters shell downward (↓) -->
+    <line x1="90" y1="0" x2="90" y2="40" stroke="var(--hot)" stroke-width="2.5"/>
+    <polygon points="86,33 90,44 94,33" fill="var(--hot)"/>
+    <rect x="70" y="0" width="40" height="18" rx="2" fill="#160a04" stroke="#50160a" stroke-width="1"/>
+    <text x="90" y="13" fill="var(--hot)" font-size="8.5" text-anchor="middle" font-family="Share Tech Mono">140°C</text>
+    <text x="90" y="-6" fill="var(--hot2)" font-size="7" text-anchor="middle" font-family="Share Tech Mono">OIL IN ↓</text>
+
+    <!-- OIL OUT: bottom-right, exits shell downward (↓) -->
+    <line x1="700" y1="190" x2="700" y2="220" stroke="var(--hot2)" stroke-width="2.5"/>
+    <polygon points="696,213 700,224 704,213" fill="var(--hot2)"/>
+    <rect x="678" y="204" width="44" height="18" rx="2" fill="#160a04" stroke="#50160a" stroke-width="1"/>
+    <text x="700" y="216" fill="var(--hot2)" font-size="8.5" text-anchor="middle" font-family="Share Tech Mono">75°C</text>
+    <text x="700" y="228" fill="var(--dim)" font-size="7" text-anchor="middle" font-family="Share Tech Mono">OIL OUT ↓</text>
+
+    <!-- WATER IN: right side, bottom chamber (pass 1 entry, 25°C, water →left into tube) -->
+    <line x1="780" y1="160" x2="820" y2="160" stroke="var(--cold)" stroke-width="2.5"/>
+    <polygon points="787,156 776,160 787,164" fill="var(--cold)"/><!-- arrow points left -->
+    <rect x="784" y="149" width="36" height="22" rx="2" fill="#071220" stroke="#1a3858" stroke-width="1"/>
+    <text x="802" y="161" fill="var(--cold)" font-size="8.5" text-anchor="middle" font-family="Share Tech Mono">25°C</text>
+    <text x="802" y="172" fill="var(--dim)" font-size="6.5" text-anchor="middle" font-family="Share Tech Mono">W IN ←</text>
+
+    <!-- WATER OUT: right side, top chamber (pass 2 exit, ≈75°C, water →right out of tube) -->
+    <line x1="780" y1="74" x2="820" y2="74" stroke="var(--cold2)" stroke-width="2.5"/>
+    <polygon points="813,70 824,74 813,78" fill="var(--cold2)"/><!-- arrow points right -->
+    <rect x="784" y="62" width="36" height="22" rx="2" fill="#071220" stroke="#1a3858" stroke-width="1"/>
+    <text x="802" y="74" fill="var(--cold2)" font-size="8.5" text-anchor="middle" font-family="Share Tech Mono">75°C</text>
+    <text x="802" y="85" fill="var(--dim)" font-size="6.5" text-anchor="middle" font-family="Share Tech Mono">W OUT →</text>
+
+    <!-- FLUID LABELS inside shell -->
+    <text x="390" y="50" fill="rgba(255,100,40,0.35)" font-size="8" text-anchor="middle" font-family="Share Tech Mono">SHELL FLUID — HOT OIL (flows left → right inside shell)</text>
+    <text x="390" y="96" fill="rgba(125,211,252,0.3)" font-size="7.5" text-anchor="middle" font-family="Share Tech Mono">PASS 2: WATER  → →  (left to right, heating up, exits 75°C)</text>
+    <text x="390" y="178" fill="rgba(46,184,255,0.3)" font-size="7.5" text-anchor="middle" font-family="Share Tech Mono">PASS 1: WATER  ← ←  (right to left, entering at 25°C)</text>
+
+    <!-- U label in SVG -->
+    <text x="390" y="115" fill="rgba(240,165,0,0.2)" font-size="8" text-anchor="middle" font-family="Share Tech Mono">U = 350 W/m²·°C · 14 tubes · L = 4.0 m</text>
+  </svg>
+</div>
+
+<!-- BOTTOM CARDS -->
+<div class="grid">
+
+  <div class="card h">
+    <div class="card-title">Temperatures — Scale: 0–160 °C</div>
+    <div style="font-size:0.59rem;color:var(--dim);margin-bottom:8px;letter-spacing:.08em">HOT SIDE · OIL · SHELL</div>
+    <div class="tbar">
+      <div class="tbar-label">In (top-L)</div>
+      <div class="tbar-track"><div class="tbar-fill" style="width:87.5%;background:var(--hot)"></div></div>
+      <div class="tbar-val" style="color:var(--hot)">140 °C</div>
+    </div>
+    <div class="tbar">
+      <div class="tbar-label">Out (bot-R)</div>
+      <div class="tbar-track"><div class="tbar-fill" style="width:46.9%;background:var(--hot2)"></div></div>
+      <div class="tbar-val" style="color:var(--hot2)">75 °C</div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:0.59rem;color:var(--dim);margin-bottom:8px;letter-spacing:.08em">COLD SIDE · WATER · TUBES</div>
+    <div class="tbar">
+      <div class="tbar-label">In (right)</div>
+      <div class="tbar-track"><div class="tbar-fill" style="width:15.6%;background:var(--cold)"></div></div>
+      <div class="tbar-val" style="color:var(--cold2)">25 °C</div>
+    </div>
+    <div class="tbar">
+      <div class="tbar-label">Out (right)</div>
+      <div class="tbar-track"><div class="tbar-fill" style="width:46.7%;background:var(--cold)"></div></div>
+      <div class="tbar-val" style="color:var(--cold)">74.76 °C</div>
+    </div>
+    <div style="margin-top:10px;padding:8px 10px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:3px;font-size:0.61rem;color:var(--warn);line-height:1.6">
+      ⚠ Target 55°C not achievable at ṁ_c = 0.25 kg/s.<br>Actual outlet = 74.76 °C (used in all calculations).
+    </div>
+  </div>
+
+  <div class="card a">
+    <div class="card-title">LMTD &amp; Correction Factor</div>
+    <div class="crow"><span class="crow-label">ΔT₁ = 140 − 74.76</span><span class="crow-val" style="color:var(--accent)">65.24 °C</span></div>
+    <div class="crow"><span class="crow-label">ΔT₂ = 75 − 25</span><span class="crow-val" style="color:var(--accent)">50.00 °C</span></div>
+    <div class="crow"><span class="crow-label">LMTD (counter-flow)</span><span class="crow-val" style="color:var(--accent)">57.03 °C</span></div>
+    <div class="crow"><span class="crow-label">R = 1.33 · P = 0.433</span><span class="crow-val" style="color:var(--green)">F = 0.88</span></div>
+    <div class="crow"><span class="crow-label">ΔT_m,corr = 0.88 × 57.03</span><span class="crow-val" style="color:var(--accent);font-size:0.95rem"><strong>50.18 °C</strong></span></div>
+    <div class="divider"></div>
+    <div class="card-title" style="margin-bottom:10px">Area &amp; Tubes</div>
+    <div class="crow"><span class="crow-label">A = 52,000 / (350 × 50.18)</span><span class="crow-val" style="color:var(--cold)">2.95 m²</span></div>
+    <div class="crow"><span class="crow-label">A₀/tube = π × 0.01905 × 4.0</span><span class="crow-val">0.2395 m²</span></div>
+    <div class="crow"><span class="crow-label">N = 2.95 / 0.2395 → even</span><span class="crow-val" style="color:var(--green)"><strong>14 tubes</strong></span></div>
+    <div class="crow"><span class="crow-label">A_provided = 14 × 0.2395</span><span class="crow-val" style="color:var(--green)">3.353 m²  (+13.7%)</span></div>
+  </div>
+
+  <div class="card c">
+    <div class="card-title">Design Specifications</div>
+    <div class="crow"><span class="crow-label">Tube OD / ID / thk</span><span class="crow-val" style="color:var(--cold2)">19.05 / 15.75 / 1.65 mm</span></div>
+    <div class="crow"><span class="crow-label">Tube length</span><span class="crow-val" style="color:var(--cold2)">4.0 m</span></div>
+    <div class="crow"><span class="crow-label">Tube pitch (triangular)</span><span class="crow-val" style="color:var(--cold2)">25.4 mm · 30°</span></div>
+    <div class="crow"><span class="crow-label">Baffles</span><span class="crow-val" style="color:var(--cold2)">Segmental, 25% cut</span></div>
+    <div class="crow"><span class="crow-label">Material</span><span class="crow-val">Carbon Steel (Seamless)</span></div>
+    <div class="crow"><span class="crow-label">U (overall)</span><span class="crow-val" style="color:var(--accent)">350 W/m²·°C</span></div>
+    <div class="crow"><span class="crow-label">Fouling R_f</span><span class="crow-val">0.0002 m²·°C/W</span></div>
+    <div class="crow"><span class="crow-label">Design pressure</span><span class="crow-val">Shell 10 bar · Tube 8 bar</span></div>
+    <div class="crow"><span class="crow-label">ṁ_h / ṁ_c</span><span class="crow-val">0.40 / 0.25 kg/s</span></div>
+    <div class="crow"><span class="crow-label">C_p,h / C_p,c</span><span class="crow-val">2.00 / 4.18 kJ/kg·°C</span></div>
+  </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="sum-block"><div class="sum-num" style="color:var(--hot)">52.0<span style="font-size:0.9rem;color:var(--dim)"> kW</span></div><div class="sum-lbl">Heat Duty</div></div>
+  <div class="sep"></div>
+  <div class="sum-block"><div class="sum-num" style="color:var(--accent)">50.18<span style="font-size:0.9rem;color:var(--dim)"> °C</span></div><div class="sum-lbl">Corrected LMTD</div></div>
+  <div class="sep"></div>
+  <div class="sum-block"><div class="sum-num" style="color:var(--cold)">2.95<span style="font-size:0.9rem;color:var(--dim)"> m²</span></div><div class="sum-lbl">Required Area</div></div>
+  <div class="sep"></div>
+  <div class="sum-block"><div class="sum-num" style="color:var(--green)">3.353<span style="font-size:0.9rem;color:var(--dim)"> m²</span></div><div class="sum-lbl">Provided Area</div></div>
+  <div class="sep"></div>
+  <div class="sum-block"><div class="sum-num" style="color:var(--green)">14<span style="font-size:0.9rem;color:var(--dim)"> tubes</span></div><div class="sum-lbl">7 per pass × 2</div></div>
+  <div class="sep"></div>
+  <div class="verdict">
+    <div class="verdict-main">✓ DESIGN ADEQUATE</div>
+    <div class="verdict-sub">Thermal duty satisfied · +13.7% area margin<br><span style="color:var(--warn)">⚠ T_c,out 55°C target not met — actual 74.76°C</span></div>
+  </div>
+</div>
+
+<div class="note">NOTE: Hydraulic design (pressure drop, velocity) and mechanical design (nozzle sizing, wall stresses) required per TEMA/API 660. Number of baffles to be determined.</div>
+
+</body>
+</html>
